@@ -1,0 +1,133 @@
+---
+title: "Análise de Gastos de Deputados"
+author: "Hugo Gabriel"
+date: "25 de outubro de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(plotly)
+```
+
+
+
+```{r}
+ceap <- read.csv("dadosCEAP.csv")
+ceap$valorGlosa <- as.numeric(sub(",", ".", ceap$valorGlosa, fixed = TRUE)) 
+```
+
+# 1 - Quais os partidos que mais fazem uso da CEAP? Quais os partidos que menos fazem uso? Mesmas perguntas conisderando valores em R$.
+
+```{r}
+partidos <- ceap %>%
+  group_by(sgPartido) %>%
+  summarise(n = n())
+
+partidos <- partidos[order(partidos$n), ]
+
+partidos %>%
+  plot_ly(x=~sgPartido, y=~n, type = "bar") %>%
+  layout(title = "Uso da CEAP por partido",
+         xaxis = list(title = "Partido"),
+         yaxis = list(title = "Número de usos da cota"))
+
+
+p <- partidos %>%
+  filter(!is.na(sgPartido)) %>%
+  ggplot(aes(x = reorder(sgPartido, n), y = n)) +
+  geom_bar(stat="identity", fill = "blue") +
+  coord_flip()
+
+p
+```
+
+```{r}
+partidos_rs <- ceap %>%
+  group_by(sgPartido) %>%
+  summarise(total = sum(valorLíquido))
+
+partidos_rs %>%
+  plot_ly(x=~sgPartido, y=~total, type="bar") %>%
+  layout(title = "Uso da CEAP por partido",
+         xaxis = list(title = "Partido"),
+         yaxis = list(title = "Valor (em R$) gastos na cota")) 
+```
+
+# 2 - Quais os tipos de despesa mais comuns no uso da CEAP? Mesma pergunta considerando valores em R$.
+
+```{r}
+ceap %>%
+  plot_ly(y=~tipoDespesa, type="histogram")
+```
+```{r}
+tipos_rs <- ceap %>%
+  group_by(tipoDespesa) %>%
+  summarise(total = sum(valorLíquido))
+
+tipos_rs %>%
+  plot_ly(x=~total, y=~tipoDespesa, type="bar")
+```
+
+# 3 - Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
+
+```{r}
+ceap %>%
+  plot_ly(x=~sgUF, type="histogram")
+```
+
+```{r}
+estado_rs <- ceap %>%
+  group_by(sgUF) %>%
+  summarise(total = sum(valorLíquido))
+
+estado_rs %>%
+  plot_ly(x=~sgUF, y=~total, type = "bar")
+```
+
+# 4 - Quais os parlamentares que mais gastam com CEAP e quais os que menos gastam?
+
+ 
+```{r}
+parlamentar_rs <- ceap %>%
+  group_by(nomeParlamentar) %>%
+  summarise(total = sum(valorLíquido))
+
+
+parlamentar_rs %>%
+  plot_ly(x = ~nomeParlamentar, y = ~total, type="scatter", mode="markers")
+
+
+parlamentar_rs %>%
+  plot_ly(y = ~total, type = "box", boxpoints = "all", jitter = 0.3, pointpos = 0)
+
+mais_gastam <- parlamentar_rs %>%
+  filter(total >= quantile(total, .75))
+
+menos_gastam <- parlamentar_rs %>%
+  filter(total <= quantile(total, .25))
+
+mais_gastam %>%
+   plot_ly(x = ~nomeParlamentar, y = ~total, type="scatter", mode="markers")
+
+menos_gastam %>%
+   plot_ly(x = ~nomeParlamentar, y = ~total, type="scatter", mode="markers")
+
+```
+
+# 5 - Existe correlação entre a quantidade de gastos no exterior e o valor restituído da CEAP? 
+
+```{r}
+gastos_exterior <- ceap %>%
+  filter(tipoDocumento == 2)
+
+gastos_exterior %>%
+  group_by(nomeParlamentar) %>%
+  summarise(n= n(),
+            total = sum(valorLíquido)) %>%
+  plot_ly(x=~n, y = ~total, type ="scatter", mode = "markers")
+
+```
+
