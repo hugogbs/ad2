@@ -6,13 +6,13 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(plotly)
+library(leaflet)
+
 ```
-
-
 
 ```{r}
 ceap <- read.csv("dadosCEAP.csv")
@@ -60,7 +60,9 @@ partidos_rs %>%
 
 ```{r}
 ceap %>%
-  plot_ly(y=~tipoDespesa, type="histogram")
+  plot_ly(y=~tipoDespesa, type="histogram") %>%
+  layout(margin = list(l = 500),
+         yaxis = list(title = "Tipo da Despesa"))
 ```
 ```{r}
 tipos_rs <- ceap %>%
@@ -68,7 +70,14 @@ tipos_rs <- ceap %>%
   summarise(total = sum(valorLíquido))
 
 tipos_rs %>%
-  plot_ly(x=~total, y=~tipoDespesa, type="bar")
+  plot_ly(x=~total, y=~tipoDespesa, type="bar") %>%
+  layout(margin = list(l = 500),
+         yaxis = list(title = "Tipo da Despesa"))
+
+tipos_rs %>%
+  ggplot(aes(y=total, x=tipoDespesa)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
 ```
 
 # 3 - Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
@@ -76,6 +85,15 @@ tipos_rs %>%
 ```{r}
 ceap %>%
   plot_ly(x=~sgUF, type="histogram")
+
+
+ceap_estado <- ceap %>%
+  group_by(sgUF) %>%
+  summarise(valor_gasto = sum(valorLíquido),
+            n_gastos = n())
+
+ceap %>%
+  plot_ly(color=~sgUF, y=~valorLíquido, type= "box")
 ```
 
 ```{r}
