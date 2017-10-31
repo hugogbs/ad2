@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(plotly)
-library(leaflet)
-
 ```
 
 ```{r}
@@ -29,19 +27,11 @@ partidos <- ceap %>%
 partidos <- partidos[order(partidos$n), ]
 
 partidos %>%
-  plot_ly(x=~sgPartido, y=~n, type = "bar") %>%
+  plot_ly(x=~reorder(sgPartido, n), y=~n, type = "bar") %>%
   layout(title = "Uso da CEAP por partido",
          xaxis = list(title = "Partido"),
          yaxis = list(title = "Número de usos da cota"))
 
-
-p <- partidos %>%
-  filter(!is.na(sgPartido)) %>%
-  ggplot(aes(x = reorder(sgPartido, n), y = n)) +
-  geom_bar(stat="identity", fill = "blue") +
-  coord_flip()
-
-p
 ```
 
 ```{r}
@@ -50,7 +40,7 @@ partidos_rs <- ceap %>%
   summarise(total = sum(valorLíquido))
 
 partidos_rs %>%
-  plot_ly(x=~sgPartido, y=~total, type="bar") %>%
+  plot_ly(x=~reorder(sgPartido, total), y=~total, type="bar") %>%
   layout(title = "Uso da CEAP por partido",
          xaxis = list(title = "Partido"),
          yaxis = list(title = "Valor (em R$) gastos na cota")) 
@@ -60,24 +50,21 @@ partidos_rs %>%
 
 ```{r}
 ceap %>%
-  plot_ly(y=~tipoDespesa, type="histogram") %>%
-  layout(margin = list(l = 500),
-         yaxis = list(title = "Tipo da Despesa"))
-```
-```{r}
-tipos_rs <- ceap %>%
   group_by(tipoDespesa) %>%
-  summarise(total = sum(valorLíquido))
-
-tipos_rs %>%
-  plot_ly(x=~total, y=~tipoDespesa, type="bar") %>%
+  summarise(n = n()) %>%
+  plot_ly(y=~reorder(tipoDespesa, n), x=~n) %>%
   layout(margin = list(l = 500),
-         yaxis = list(title = "Tipo da Despesa"))
+         yaxis = list(title = ""))
+```
 
-tipos_rs %>%
-  ggplot(aes(y=total, x=tipoDespesa)) +
-  geom_bar(stat = "identity") +
-  coord_flip()
+```{r}
+ceap %>%
+  group_by(tipoDespesa) %>%
+  summarise(total = sum(valorLíquido)) %>%
+  plot_ly(x=~total, y=~reorder(tipoDespesa, total), type="bar") %>%
+  layout(margin = list(l = 500),
+         yaxis = list(title = ""))
+
 ```
 
 # 3 - Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
@@ -93,6 +80,7 @@ ceap_estado <- ceap %>%
             n_gastos = n())
 
 ceap %>%
+  filter(valorLíquido > 0, valorLíquido < quantile(valorLíquido, .90)) %>%
   plot_ly(color=~sgUF, y=~valorLíquido, type= "box")
 ```
 
