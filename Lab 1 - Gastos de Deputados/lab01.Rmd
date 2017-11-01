@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(plotly)
+library(wordcloud)
+library(rgdal)
 ```
 
 ```{r}
@@ -24,15 +26,15 @@ partidos <- ceap %>%
   group_by(sgPartido) %>%
   summarise(n = n())
 
-partidos <- partidos[order(partidos$n), ]
-
 partidos %>%
   plot_ly(x=~reorder(sgPartido, n), y=~n, type = "bar") %>%
   layout(title = "Uso da CEAP por partido",
-         xaxis = list(title = "Partido"),
+         xaxis = list(title = ""),
          yaxis = list(title = "Número de usos da cota"))
 
 ```
+
+O gráfico deixa claro que o partido que usa a cota mais vezes é o __PT__ com aproximadamente 130 mil usos. Por outro lado os partidos __PT do B, e PMN__ usaram a CEAP 50 e 61 vezes respectivamente.
 
 ```{r}
 partidos_rs <- ceap %>%
@@ -46,6 +48,8 @@ partidos_rs %>%
          yaxis = list(title = "Valor (em R$) gastos na cota")) 
 ```
 
+O comportamento para o valor gasto é bastante similar ao visto anteriomente para a frequência, como os que menos gastam temos ainda __PT do B e PMN__ mas o partido que mais gasta é o __PMDB__ que era o segundo em número de usos da CEAP.
+
 # 2 - Quais os tipos de despesa mais comuns no uso da CEAP? Mesma pergunta considerando valores em R$.
 
 ```{r}
@@ -55,7 +59,10 @@ ceap %>%
   plot_ly(y=~reorder(tipoDespesa, n), x=~n) %>%
   layout(margin = list(l = 500),
          yaxis = list(title = ""))
+
 ```
+
+As despesas mais comuns são com __Emissão de bilhete aéreo, Combustíveis e Telefonia__.
 
 ```{r}
 ceap %>%
@@ -67,11 +74,15 @@ ceap %>%
 
 ```
 
+As que mais demandam dinheiro da cota parlamentar são a __Divulgação da atividade parlamentar, Emissão de bilhete aéreo e locação de veículos__.
+
 # 3 - Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
 
 ```{r}
-ceap %>%
-  plot_ly(x=~sgUF, type="histogram")
+
+mapa <- readOGR("mapa/BRUFE250GC_SIR.shp")
+
+mapa@data$sgUF <- c("AC", "AL", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PE", "PI", "RJ", "RN", "RS", "RR", "SC", "SP", "SE", "TO", "PR", "RO", "AM")
 
 
 ceap_estado <- ceap %>%
@@ -79,32 +90,64 @@ ceap_estado <- ceap %>%
   summarise(valor_gasto = sum(valorLíquido),
             n_gastos = n())
 
-ceap %>%
-  filter(valorLíquido > 0, valorLíquido < quantile(valorLíquido, .90)) %>%
-  plot_ly(color=~sgUF, y=~valorLíquido, type= "box")
+mapa@data <- mapa@data %>%
+  left_join(ceap_estado)
+```
+
+
+```{r}
+colors = colorNumeric('OrRd', mapa@data$n_gastos)
+
+mapa %>%
+  leaflet() %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
+  addPolygons(opacity = 0.5,
+              weight = 1,
+              fillColor = colors(mapa@data$n_gastos),
+              fillOpacity = 1,
+              color = "black",
+              label = paste(mapa@data$NM_ESTADO),
+              popup = paste(mapa@data$NM_ESTADO, "</br>",
+                            "Número de usos da cota: ", mapa@data$n_gastos)) %>%
+  addLegend(position = "bottomright", pal = colors, values = mapa@data$n_gastos,
+            title = "CEAP por estado - Frequência",
+            opacity = 1, na.label = "0")
 ```
 
 ```{r}
-estado_rs <- ceap %>%
-  group_by(sgUF) %>%
-  summarise(total = sum(valorLíquido))
+colors = colorNumeric('OrRd', mapa@data$valor_gasto)
 
-estado_rs %>%
-  plot_ly(x=~sgUF, y=~total, type = "bar")
+mapa %>%
+  leaflet() %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
+  addPolygons(opacity = 0.5,
+              weight = 1,
+              fillColor = colors(mapa@data$valor_gasto),
+              fillOpacity = 1,
+              color = "black",
+              label = paste(mapa@data$NM_ESTADO),
+              popup = paste(mapa@data$NM_ESTADO, "</br>",
+                            "Valor gasto: R$", mapa@data$valor_gasto)) %>%
+  addLegend(position = "bottomright", pal = colors, values = mapa@data$valor_gasto,
+            title = "CEAP por estado - Valor gasto (R$)",
+            opacity = 1, na.label = "0")
 ```
 
 # 4 - Quais os parlamentares que mais gastam com CEAP e quais os que menos gastam?
 
- 
 ```{r}
 parlamentar_rs <- ceap %>%
   group_by(nomeParlamentar) %>%
-  summarise(total = sum(valorLíquido))
-
+  summarise(total = sum(valorLíquido)) %>%
+  filter(total > 0) 
 
 parlamentar_rs %>%
-  plot_ly(x = ~nomeParlamentar, y = ~total, type="scatter", mode="markers")
+  filter(total >= quantile(total, 0.95)) %>%
+  plot_ly(x = ~reorder(nomeParlamentar, total), y = ~total, type="scatter", mode="markers")
 
+parlamentar_rs %>%
+  filter(total <= quantile(total, 0.05)) %>%
+  plot_ly(x = ~reorder(nomeParlamentar, total), y = ~total, type="scatter", mode="markers")
 
 parlamentar_rs %>%
   plot_ly(y = ~total, type = "box", boxpoints = "all", jitter = 0.3, pointpos = 0)
