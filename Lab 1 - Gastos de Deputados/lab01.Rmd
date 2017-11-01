@@ -12,6 +12,8 @@ library(tidyverse)
 library(plotly)
 library(wordcloud)
 library(rgdal)
+library(leaflet)
+library(RColorBrewer)
 ```
 
 ```{r}
@@ -133,6 +135,9 @@ mapa %>%
             opacity = 1, na.label = "0")
 ```
 
+O estado de __São Paulo__ é o que mais concentra parlamentares que usam a CEAP, seja em frequência de uso, seja em dinheiro gasto.
+
+É possível ainda notar que os municípios do sul e do sudeste são os que mais usam a cota.
 # 4 - Quais os parlamentares que mais gastam com CEAP e quais os que menos gastam?
 
 ```{r}
