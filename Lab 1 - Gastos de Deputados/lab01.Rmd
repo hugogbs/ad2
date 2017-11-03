@@ -6,11 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(plotly)
-library(wordcloud)
 library(rgdal)
 library(leaflet)
 library(RColorBrewer)
@@ -21,7 +20,7 @@ ceap <- read.csv("dadosCEAP.csv")
 ceap$valorGlosa <- as.numeric(sub(",", ".", ceap$valorGlosa, fixed = TRUE)) 
 ```
 
-### 1 - Quais os partidos que mais fazem uso da CEAP? Quais os partidos que menos fazem uso? Mesmas perguntas conisderando valores em R$.
+#### 1 - Quais os partidos que mais fazem uso da CEAP? Quais os partidos que menos fazem uso? Mesmas perguntas conisderando valores em R$.
 
 ```{r}
 partidos <- ceap %>%
@@ -36,7 +35,7 @@ partidos %>%
 
 ```
 
-O gráfico deixa claro que o partido que usa a cota mais vezes é o __PT__ com aproximadamente 130 mil usos. Por outro lado os partidos __PT do B, e PMN__ usaram a CEAP 50 e 61 vezes respectivamente.
+O gráfico deixa claro que o partido que usa a cota mais vezes é o __PT__ com aproximadamente 130 mil usos. Por outro lado os partidos __PT do B, e PMN__ usaram a CEAP 50 e 61 vezes respectivamente.  
 
 ```{r}
 partidos_rs <- ceap %>%
@@ -50,9 +49,9 @@ partidos_rs %>%
          yaxis = list(title = "Valor (em R$) gastos na cota")) 
 ```
 
-O comportamento para o valor gasto é bastante similar ao visto anteriomente para a frequência, como os que menos gastam temos ainda __PT do B e PMN__ mas o partido que mais gasta é o __PMDB__ que era o segundo em número de usos da CEAP.
+O comportamento para o valor gasto é bastante similar ao visto anteriomente para a frequência, como os que menos gastam temos ainda __PT do B e PMN__ mas o partido que mais gasta é o __PMDB__ que era o segundo em número de usos da CEAP.  
 
-### 2 - Quais os tipos de despesa mais comuns no uso da CEAP? Mesma pergunta considerando valores em R$.
+#### 2 - Quais os tipos de despesa mais comuns no uso da CEAP? Mesma pergunta considerando valores em R$.
 
 ```{r}
 ceap %>%
@@ -78,7 +77,7 @@ ceap %>%
 
 As que mais demandam dinheiro da cota parlamentar são a __Divulgação da atividade parlamentar, Emissão de bilhete aéreo e locação de veículos__.
 
-### 3 - Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
+#### 3 - Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
 
 ```{r results=FALSE}
 mapa <- readOGR("mapa/BRUFE250GC_SIR.shp")
@@ -99,7 +98,7 @@ mapa@data <- mapa@data %>%
 
 
 ```{r}
-colors = colorNumeric('OrRd', mapa@data$n_gastos)
+colors = colorNumeric('Oranges', mapa@data$n_gastos)
 
 mapa %>%
   leaflet() %>%
@@ -122,7 +121,7 @@ O gráfico acima considera o quantidade de vezes que a CEAP é utilizada e nele 
 É evidente ainda que os estados do _Centro-Oeste e do Norte_ usam com menos frequência a cota parlametar.
 
 ```{r}
-colors = colorNumeric('OrRd', mapa@data$valor_gasto)
+colors = colorNumeric('Reds', mapa@data$valor_gasto)
 
 mapa %>%
   leaflet() %>%
@@ -142,7 +141,7 @@ mapa %>%
 
 Quando lidamos com valor gasto, que é o exibido na visualização acima, identificamos comportamento similar ao descrito na análise de quantidade de uso; __São Paulo__ é o estado que mais gasta da cota ainda seguido de _Minas Gerais_ e, assim como no caso anterior, o Centro-Oeste e o Norte gastam menos que as demais regiões.
 
-### 4 - Quais os parlamentares que mais gastam com CEAP e quais os que menos gastam?
+#### 4 - Quais os parlamentares que mais gastam com CEAP e quais os que menos gastam?
 
 ```{r}
 parlamentar_rs <- ceap %>%
@@ -171,7 +170,7 @@ parlamentar_rs %>%
 
 O gráfico de pontos acima mostra os 1% fornecedores que __menos gastam__.
 
-### 5 - Existe correlação entre a quantidade de gastos no exterior e o valor restituído da CEAP? 
+#### 5 - Existe correlação entre a quantidade de gastos no exterior e o valor restituído da CEAP? 
 
 ```{r}
 g <- ceap %>%
@@ -193,4 +192,75 @@ g1 %>%
 
 ```
 
-Não parece haver correlação entre o gasto no exterior e o gasto no Brasil.
+Não parece haver correlação entre o gasto no exterior e o gasto no Brasil.  
+
+### Perguntas Opcionais
+
+#### Quais os estados cujos deputados gastam mais no exterior? Quais os estados cujos deputados gastam menos no exterior?
+
+```{r}
+gastos_exterior <- ceap %>%
+  filter(tipoDocumento == 2) %>%
+  group_by(sgUF) %>%
+  summarise(gasto_ex = sum(valorLíquido))
+
+mapa@data <- mapa@data %>%
+  left_join(gastos_exterior)
+
+colors = colorNumeric('Greens', mapa@data$gasto_ex)
+
+mapa %>%
+  leaflet() %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
+  addPolygons(opacity = 0.5,
+              weight = 1,
+              fillColor = colors(mapa@data$gasto_ex),
+              fillOpacity = 1,
+              color = "black",
+              label = paste(mapa@data$NM_ESTADO),
+              popup = paste(mapa@data$NM_ESTADO, "</br>",
+                            "Total de gastos no exterior: ", ifelse(is.na(mapa@data$gasto_ex),
+                                                                    0, mapa@data$gasto_ex))) %>%
+  addLegend(position = "bottomright", pal = colors, values = mapa@data$gasto_ex,
+            title = "Gastos no exterior",
+            opacity = 1, na.label = "0")
+```
+
+O estado que contém os deputados que mais gastam no exterior é __Sâo Paulo__ seguido por _Minas Gerais_ o que já era de se esperas já que estes estão no topo do gasto geral de cota parlamentar também.
+
+Por outro lado no __Mato Grosso do Sul, Goiás, Rio Grande do Norte e o Distrito Federal__ não foi observado nenhum gasto no exterior.  
+
+#### Quais os deputados que mais ultrapassam o limite de CEAP do seu estado?
+
+```{r}
+limite_estado <- read.csv("limiteMensalCEAP.csv")
+
+ceap_limite <- ceap %>%
+  mutate(ano = substr(dataEmissao, 1, 4)) %>%
+  mutate(mes = substr(dataEmissao, 6, 7)) %>%
+  group_by(sgUF, ano, mes, nomeParlamentar) %>%
+  summarise(total = sum(valorLíquido)) %>%
+  left_join(limite_estado, by = c("sgUF" = "UF")) %>%
+  mutate(dif = total - limite_mensal)
+
+
+execedem_cota <- ceap_limite %>%
+  filter(dif < 0) %>%
+  group_by(nomeParlamentar) %>%
+  summarise(n = n(),
+            total_excedido = sum(total),
+            media = mean(total),
+            mediana = median(total))
+
+execedem_cota %>%
+  filter(total_excedido >= quantile(total_excedido, .99)) %>%
+plot_ly(y =~reorder(nomeParlamentar, total_excedido), x= ~total_excedido, type="bar") %>%
+  layout(title = "Parlamentares que mais excedem a cota",
+         yaxis = list(title = ""),
+         xaxis = list(title = "Total excedido"),
+         margin = list(l = 130))
+```
+
+Observou-se que `r nrow(execedem_cota)` deputados execederam sua cota parlamentar em pelo menos uma vez no período entre 2014 e setembro de 2017.  
+
+O gráfico acima mostra os 1% dos deputados que mais excederam a CEAP.
