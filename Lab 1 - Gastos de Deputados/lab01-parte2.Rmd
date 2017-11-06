@@ -1,0 +1,17 @@
+---
+title: 'Análise de Gastos de Deputados: Suas Perguntas'
+author: "Hugo Gabriel"
+date: "6 de novembro de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+# Em que ano os parlamentares mais gastam
+
+# Em que mês do ano os parlamentares mais execedem a cota
+
+# Que região mais gasta?
