@@ -7,11 +7,51 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(plotly)
 
 ```
 
-# Em que ano os parlamentares mais gastam
+```{r}
+ceap <- read.csv("dadosCEAP.csv")
+ceap$valorGlosa <- as.numeric(sub(",", ".", ceap$valorGlosa, fixed = TRUE)) 
+```
+
+# Em que ano os parlamentares mais gastaram
+```{r}
+ceap_ano <- ceap %>%
+  mutate(ano = substr(dataEmissao, 1, 4)) %>%
+  group_by(ano) %>%
+  summarise(valor = sum(valorLíquido))
+
+ceap_ano %>%
+  plot_ly(x=~ano, y=~valor, type="bar")
+```
+
 
 # Em que mês do ano os parlamentares mais execedem a cota
+```{r}
+ceap_mes <- ceap %>%
+  mutate(mes = substr(dataEmissao, 6, 7)) %>%
+  group_by(mes) %>%
+  summarise(valor = sum(valorLíquido))
+
+ceap_mes %>%
+  plot_ly(x=~mes, y=~valor, type="bar")
+
+c1 <- ceap %>%
+  mutate(mes = substr(dataEmissao, 6, 7))
+c1 %>%
+  plot_ly(x=~mes, y=~valorLíquido, type="box")
+
+c1 %>%
+  plot_ly(x=~mes, y=~valorLíquido, type="box", boxpoints = FALSE)
+```
+
 
 # Que região mais gasta?
+
+```{r}
+
+```
+
