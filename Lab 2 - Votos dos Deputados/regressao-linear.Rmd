@@ -1,0 +1,42 @@
+---
+title: "Usando Regressão Linear para Explicar a votação de Deputados"
+author: "Hugo Gabriel"
+date: "22 de novembro de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(Amelia)
+```
+
+```{r}
+eleicoes <- read.csv("eleicoes2014.csv", encoding = "latin1") %>%
+  mutate(cargo = NULL)
+
+missmap(eleicoes)
+```
+
+### Um modelo de regressão múltipla com todas as variáveis é plausível para explicar a variação no número de votos?
+Não, algumas variáveis que estão nos dados evidentemente não possuem relação como o número de votos, das quais consigo elencar:
+
+* sequencial_candidato
+* nome
+* numero_candidato
+
+```{r}
+eleicoes_rm <- eleicoes %>%
+  select(-c(nome, setor_economico_receita, recursos_de_pessoas_juridicas, recursos_de_pessoas_físicas, recursos_de_partidos, recursos_de_outros_candidatos.comites, recursos_proprios ))
+
+missmap(eleicoes_rm)
+
+
+model <- lm(votos~., data = eleicoes_rm)
+
+summary(model)
+
+```
+
+
