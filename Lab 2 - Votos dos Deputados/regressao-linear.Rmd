@@ -20,23 +20,60 @@ missmap(eleicoes)
 ```
 
 ### Um modelo de regressão múltipla com todas as variáveis é plausível para explicar a variação no número de votos?
-Não, algumas variáveis que estão nos dados evidentemente não possuem relação como o número de votos, das quais consigo elencar:
+
+Não, algumas variáveis que estão nos dados evidentemente não possuem relação como o número de votos e por isso foram removidas, são elas:
 
 * sequencial_candidato
 * nome
-* numero_candidato
+* numero_cadidato
+
+Além disso, como podemos observar no gráfico abaixo algumas possuem muitas observações _NA_ e também não foram consideradas no modelo.
 
 ```{r}
+missmap(eleicoes)
+```
+
+Após as manipulações restaram 15 variáveis para explicar o número de votos dos candidados e neste modelo não foi considerada a iteração entre as variáveis.
+```{r}
 eleicoes_rm <- eleicoes %>%
-  select(-c(nome, setor_economico_receita, recursos_de_pessoas_juridicas, recursos_de_pessoas_físicas, recursos_de_partidos, recursos_de_outros_candidatos.comites, recursos_proprios ))
-
-missmap(eleicoes_rm)
-
+  select(-c(sequencial_candidato, nome, numero_cadidato, setor_economico_receita, recursos_de_pessoas_juridicas, recursos_de_pessoas_físicas, recursos_de_partidos, recursos_de_outros_candidatos.comites, recursos_proprios ))
 
 model <- lm(votos~., data = eleicoes_rm)
+``` 
 
-summary(model)
+A tabela abaixo nos mostra um sumário do modelo, aqui, estamos mais interessados no __r.squared__.
+```{r}
+glance(model)
+```
+Percebe-se que __o modelo é capaz de explicar `r round(summary(model)$r.squared, 4)*100`% dos nossos dados__ o que, dado que estamos usando o modelo mais simples de regressão, é um bom resultado.
+
+Observaremos abaixo a Tabela de Análise de Variância, para identificarmos a significância de cada variável de entrada para explicar a variável resposta _votos_. 
+
+```{r}
+anova(model)
+```
+Observamos que algumas variáveis não são tão significativas para a predição no número de votos, são elas:
+
+* quantidade_doadores
+* setor_economico_despesa
+* idade
+* estado_civil
+
+Então, podemos concluir que nem todas as variáveis usadas não necessárias, ou mesmo pĺausíveis, para explicar a variação no número de votos.
+
+```{r warning=FALSE}
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
+plot(model)
 
 ```
+
+##
+
+```{r}
+tidy(model, conf.int = TRUE) %>% 
+  select(-std.error, -p.value) %>%
+  datatable()
+```
+
 
 
