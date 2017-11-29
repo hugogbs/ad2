@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(Amelia)
+library(broom)
+library(DT)
 ```
 
 ```{r}
@@ -70,10 +72,46 @@ plot(model)
 ##
 
 ```{r}
-tidy(model, conf.int = TRUE) %>% 
-  select(-std.error, -p.value) %>%
-  datatable()
+# tidy(model, conf.int = TRUE) %>% 
+#   select(-std.error, -p.value) %>%
+#   datatable()
 ```
 
 
+### Todas as variáveis são úteis para o modelo de regressão? Há variáveis redudantes? Justifique sua resposta em ambos os casos
+
+```{r}
+library(leaps)
+
+regsubsets.out <-
+    regsubsets(votos ~ .,
+               data = eleicoes_rm,
+               nbest = 1,       # 1 único modelo para cada cojunto de preditores
+               nvmax = NULL,    # NULL para não haver limite no número de variáveis preditoras
+               force.in = NULL, force.out = NULL,
+               method = "exhaustive",
+               really.big = )
+
+summary.out <- summary(regsubsets.out)
+summary.out
+  
+```
+
+### No caso de haver variáveis pouco explicativas e/ou redudantes, construa um novo modelo sem essas variáveis e o compare ao modelo com todas as variáveis 
+
+```{r}
+eleicoes_rm.f <- eleicoes_rm %>%
+  select(UF, partido, quantidade_doacoes, total_receita, media_receita, quantidade_despesas, 
+         quantidade_fornecedores, total_despesa, media_despesa, sexo, grau, votos)
+
+model_filtrado <- model <- lm(votos~., data = eleicoes_rm.f)
+
+glance(model_filtrado)
+glance(model)
+
+anova(model_filtrado)
+plot(model_filtrado)
+```
+
+### Quais variáveis conseguem explicar melhor o número de votos? Justifique sua resposta.
 
