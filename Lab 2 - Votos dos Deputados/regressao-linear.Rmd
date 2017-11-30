@@ -6,22 +6,44 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
 library(tidyverse)
 library(Amelia)
 library(broom)
-library(DT)
+library(GGally)
 ```
+
+### Tratamento dos dados
+
+Antes de gerarmos o modelo precisamos ter certeza de que os dados que vamos usar estão no melhor formato possível, neste caso o que será necessário é lidar com dados que estão faltando, gráfico abaixo nos mostra para quais variáveis temos valores _NA_.
 
 ```{r}
-eleicoes <- read.csv("eleicoes2014.csv", encoding = "latin1") %>%
-  mutate(cargo = NULL)
+eleicoes <- read.csv("eleicoes2014.csv", encoding = "latin1")
 
-missmap(eleicoes)
+missmap(eleicoes, main = "Dados dos Deputados: Missingness Map", y.cex = 0.01)
 ```
 
-### Um modelo de regressão múltipla com todas as variáveis é plausível para explicar a variação no número de votos?
+Como podemos observar no gráfico a maioria das variáveis está completa, no entanto, temos muitas observações vazias para __recursos_de_pessoas_juridicas, recursos_de_partidos, recursos_proprios, recursos_de_outros_candidatos.comites e recursos_de_pessoas_físicas__. Temos, fundamentalmente, três maneiras de lidar com essa situação:
+
+* Remover as observações que têm pelo menos um valor faltando;
+* Remover as variáveis que contém os valores faltantes;
+* Predizer os valores faltantes;
+
+Como os NA's estão concentrados apenas em algumas variáveis optei por remover estas colunas.
+
+Além disso a coluna __cargo__ foi removida também pois é a mesma para todos os deputados e não nos ajudaria na geração do modelo.
+
+```{r}
+eleicoes_rm <- eleicoes %>%
+  select(-c(setor_economico_receita, recursos_de_pessoas_juridicas,
+            recursos_de_pessoas_físicas, recursos_de_partidos,
+            recursos_de_outros_candidatos.comites, recursos_proprios, cargo))
+```
+
+Feito isso podemos agora responder as perguntas.
+
+### 1. Um modelo de regressão múltipla com todas as variáveis é plausível para explicar a variação no número de votos?
 
 Não, algumas variáveis que estão nos dados evidentemente não possuem relação como o número de votos e por isso foram removidas, são elas:
 
@@ -29,17 +51,14 @@ Não, algumas variáveis que estão nos dados evidentemente não possuem relaç�
 * nome
 * numero_cadidato
 
-Além disso, como podemos observar no gráfico abaixo algumas possuem muitas observações _NA_ e também não foram consideradas no modelo.
-
 ```{r}
-missmap(eleicoes)
+eleicoes_rm <- eleicoes_rm %>%
+  select(-c(sequencial_candidato, nome, numero_cadidato))
 ```
 
-Após as manipulações restaram 15 variáveis para explicar o número de votos dos candidados e neste modelo não foi considerada a iteração entre as variáveis.
-```{r}
-eleicoes_rm <- eleicoes %>%
-  select(-c(sequencial_candidato, nome, numero_cadidato, setor_economico_receita, recursos_de_pessoas_juridicas, recursos_de_pessoas_físicas, recursos_de_partidos, recursos_de_outros_candidatos.comites, recursos_proprios ))
+No entato ainda podem haver variáveis que não são boas preditoras mas que não estamos considerando, para verificar isso nada melhor que gerarmos o modelo e observarmos a relevância de cada variável no modelo resultante.
 
+```{r}
 model <- lm(votos~., data = eleicoes_rm)
 ``` 
 
@@ -47,14 +66,16 @@ A tabela abaixo nos mostra um sumário do modelo, aqui, estamos mais interessado
 ```{r}
 glance(model)
 ```
-Percebe-se que __o modelo é capaz de explicar `r round(summary(model)$r.squared, 4)*100`% dos nossos dados__ o que, dado que estamos usando o modelo mais simples de regressão, é um bom resultado.
+
+O modelo que geramos possui `r round(glance(model)$r.squared, 2)` de R² e `r round(glance(model)$adj.r.squared, 2)` de R² ajustado. 
 
 Observaremos abaixo a Tabela de Análise de Variância, para identificarmos a significância de cada variável de entrada para explicar a variável resposta _votos_. 
 
 ```{r}
 anova(model)
 ```
-Observamos que algumas variáveis não são tão significativas para a predição no número de votos, são elas:
+
+Observamos que algumas variáveis possuem _p-valor > 0.05_ logo, não são tão significativas para a predição no número de votos, são elas:
 
 * quantidade_doadores
 * setor_economico_despesa
@@ -63,55 +84,69 @@ Observamos que algumas variáveis não são tão significativas para a prediçã
 
 Então, podemos concluir que nem todas as variáveis usadas não necessárias, ou mesmo pĺausíveis, para explicar a variação no número de votos.
 
-```{r warning=FALSE}
-layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
-plot(model)
-
-```
-
-##
-
 ```{r}
-# tidy(model, conf.int = TRUE) %>% 
-#   select(-std.error, -p.value) %>%
-#   datatable()
+eleicoes_rm <- eleicoes_rm %>%
+  select(-c(quantidade_doadores, setor_economico_despesa, idade, estado_civil))
 ```
 
+### 2. Todas as variáveis são úteis para o modelo de regressão? Há variáveis redudantes? Justifique sua resposta em ambos os casos
 
-### Todas as variáveis são úteis para o modelo de regressão? Há variáveis redudantes? Justifique sua resposta em ambos os casos
+Para verificarmos isso, observaremos a correlação entre as variáveis.
 
-```{r}
-library(leaps)
+No entanto temos algumas variáveis do tipo _factor_, neste caso vamos convertê-las para inteiro para que possamos calcular sua correlação com as demais.
+```{r fig.align = "center", fig.height=7,fig.width=7}
+cor_data <- eleicoes_rm %>%
+  mutate(UF = as.numeric(UF)) %>%
+  mutate(partido = as.numeric(partido)) %>%
+  mutate(sexo = as.numeric(sexo)) %>%
+  mutate(grau = as.numeric(grau)) %>%
+  round(2)
 
-regsubsets.out <-
-    regsubsets(votos ~ .,
-               data = eleicoes_rm,
-               nbest = 1,       # 1 único modelo para cada cojunto de preditores
-               nvmax = NULL,    # NULL para não haver limite no número de variáveis preditoras
-               force.in = NULL, force.out = NULL,
-               method = "exhaustive",
-               really.big = )
-
-summary.out <- summary(regsubsets.out)
-summary.out
-  
+ggpairs(cor_data, axisLabels = "none")
 ```
 
-### No caso de haver variáveis pouco explicativas e/ou redudantes, construa um novo modelo sem essas variáveis e o compare ao modelo com todas as variáveis 
+Observamos uma alta correlação entre total_despesa e media_receita (0,994) e também entre total_despesa e unidade_despesa (0,807), por isso iremos remover a variável __total_despesa__.
 
+As demais variáveis possuem correlação linear moderada ou baixa e em função disso serão mantidas.
+
+### 3. No caso de haver variáveis pouco explicativas e/ou redudantes, construa um novo modelo sem essas variáveis e o compare ao modelo com todas as variáveis.
+
+Usaremos os valores de R² ajustado para comparar os modelos.
+
+No modelo filtrado temos: 
 ```{r}
 eleicoes_rm.f <- eleicoes_rm %>%
-  select(UF, partido, quantidade_doacoes, total_receita, media_receita, quantidade_despesas, 
-         quantidade_fornecedores, total_despesa, media_despesa, sexo, grau, votos)
+  select(-total_despesa)
 
-model_filtrado <- model <- lm(votos~., data = eleicoes_rm.f)
+model_filtrado <- lm(votos~., data = eleicoes_rm.f)
 
 glance(model_filtrado)
-glance(model)
-
-anova(model_filtrado)
-plot(model_filtrado)
 ```
 
-### Quais variáveis conseguem explicar melhor o número de votos? Justifique sua resposta.
+Já no modelo original:
+```{r}
+glance(model)
+diff = glance(model)$adj.r.squared - glance(model_filtrado)$adj.r.squared
+```
 
+Observamos que a diferença do valor do R² ajustado é de apenas `r round(diff,3)` logo podemos dizer que nao existem diferenças significativas entre os dois modelos.
+
+### 4. Analise plots de resíduos e verifique se há tendências nos erros.
+```{r}
+ggplot(model_filtrado, aes(x = predict(model_filtrado), 
+                           y = residuals(model_filtrado))) +
+  geom_point() +
+  xlab("Predição") +
+  ylab("Resíduos")
+```
+
+Analisando o plot de resíduios podemos observar uma distribuição aleatória em torno de zero.
+
+### 5. Quais variáveis conseguem explicar melhor o número de votos? Justifique sua resposta.
+Utilizando a ANOVA do modelo filtrado que geramos podemos obter essa resposta.
+
+```{r}
+anova(model_filtrado)
+```
+
+Observamos através no nível de significância das variáveis que todas execto o grau são boas preditoras para o número de votos de um deputado.
