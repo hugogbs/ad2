@@ -18,7 +18,7 @@ dados_votos <- read.csv("eleicoes2014.csv", encoding = "latin1")
 dados_votos <- dados_votos %>%
   select(-c(nome, sequencial_candidato, numero_cadidato, cargo))
 # setor_economico_receita, setor_economico_despesa, 
-dados_votos[is.na(dados_votos)] <- 0
+dados_votos[is.na(dados_votos)] <- 0 # Testar com MEDIANA, MÉDIA, ...
 ```
 
 ```{r}
@@ -29,7 +29,7 @@ train_id <- sample(seq_len(nrow(dados_votos)), size = smp_size)
 treino <- dados_votos[train_id,]
 teste <- dados_votos[-train_id,]
 
-control <- trainControl(method = "cv", number = 5)
+control <- trainControl(method = "repeatedcv", number = 5, repeats = 10, search = "random")
 ```
 
 ### Modelo de Regressão Ridge
@@ -43,9 +43,24 @@ model.ridge <- train(votos~.,
                      trControl = control,
                      preProcess = c('scale', 'center', 'nzv'),
                      tuneGrid = lambdaGrid,
-                     metric = "lambda")
+                     metric = "RMSE")
 
 model.ridge
+
+plot(model.ridge$lambda)
+
+model.ridge <- train(votos~., 
+                     data = treino,
+                     method = "ridge",
+                     trControl = control,
+                     preProcess = c('scale', 'center', 'nzv'),
+                     metric = "RMSE",
+                     tuneLength = 10)
+
+
+model.ridge
+
+ggplot(varImp(model.ridge))
 ```
 
 ### Modelo de Regressão Lasso
@@ -55,7 +70,10 @@ model.lasso <- train(votos~.,
                      data = treino,
                      method = "lasso",
                      trControl = control,
-                     preProcess = c('scale', 'center'))
+                     preProcess = c('scale', 'center', 'nzv'),
+                     tuneGrid = lambdaGrid,
+                     metric = "RMSE",
+                     tuneLength = 10)
 
 model.lasso
 ```
@@ -67,11 +85,36 @@ model.knn <- train(votos~.,
                      data = treino,
                      method = "knn",
                      trControl = control,
-                     preProcess = c('scale', 'center'))
+                     preProcess = c('scale', 'center', 'nzv'),
+                     tuneGrid = lambdaGrid,
+                     metric = "RMSE",
+                     tuneLength = 10)
 
 model.knn
+```
 
+```{r}
 plot(model.knn, xvar="lambda")
 plot(model.lasso, xvar="lambda")
 plot(model.ridge)
 ```
+
+## Comparando os modelos gerados
+
+## Quais as variáveis mais importantes?
+
+### Ridge
+```{r}
+ggplot(varImp(model.ridge))
+```
+
+### Lasso
+```{r}
+ggplot(varImp(model.lasso))
+```
+
+## Melhor modelo sem validação cruzada
+
+
+# Testar outros modelos como SVR, Regression Trees, Florestas Aleatórias
+# Building Predictive Models in R Using the caret Package (PDF)
