@@ -10,15 +10,19 @@ knitr::opts_chunk$set(echo = TRUE, warning = TRUE)
 
 library(caret)
 library(tidyverse)
+library(doMC)
 ```
 
 ```{r}
 dados_votos <- read.csv("eleicoes2014.csv", encoding = "latin1")
 
 dados_votos <- dados_votos %>%
-  select(-c(nome, sequencial_candidato, numero_cadidato, cargo))
-# setor_economico_receita, setor_economico_despesa, 
-dados_votos[is.na(dados_votos)] <- 0 # Testar com MEDIANA, MÉDIA, ...
+  select(-c(nome, sequencial_candidato, numero_cadidato, cargo, setor_economico_receita, setor_economico_despesa))
+
+for(i in 1:ncol(dados_votos)){
+    dados_votos[is.na(dados_votos[,i]), i] <- mean(dados_votos[,i], na.rm = TRUE)
+}
+# dados_votos[is.na(dados_votos)] <- 0 # Testar com MEDIANA, MÉDIA, ...
 ```
 
 ```{r}
@@ -32,6 +36,12 @@ teste <- dados_votos[-train_id,]
 control <- trainControl(method = "repeatedcv", number = 5, repeats = 10, search = "random")
 ```
 
+```{r}
+library(parallel)
+numCores <- detectCores()
+registerDoMC(cores = numCores-1)
+```
+
 ### Modelo de Regressão Ridge
 
 ```{r}
@@ -42,25 +52,9 @@ model.ridge <- train(votos~.,
                      method = "ridge",
                      trControl = control,
                      preProcess = c('scale', 'center', 'nzv'),
-                     tuneGrid = lambdaGrid,
-                     metric = "RMSE")
-
-model.ridge
-
-plot(model.ridge$lambda)
-
-model.ridge <- train(votos~., 
-                     data = treino,
-                     method = "ridge",
-                     trControl = control,
-                     preProcess = c('scale', 'center', 'nzv'),
                      metric = "RMSE",
-                     tuneLength = 10)
-
-
+                     tuneLength = 100)
 model.ridge
-
-ggplot(varImp(model.ridge))
 ```
 
 ### Modelo de Regressão Lasso
@@ -71,9 +65,8 @@ model.lasso <- train(votos~.,
                      method = "lasso",
                      trControl = control,
                      preProcess = c('scale', 'center', 'nzv'),
-                     tuneGrid = lambdaGrid,
                      metric = "RMSE",
-                     tuneLength = 10)
+                     tuneLength = 100)
 
 model.lasso
 ```
@@ -86,23 +79,29 @@ model.knn <- train(votos~.,
                      method = "knn",
                      trControl = control,
                      preProcess = c('scale', 'center', 'nzv'),
-                     tuneGrid = lambdaGrid,
                      metric = "RMSE",
-                     tuneLength = 10)
+                     tuneLength = 100)
 
 model.knn
 ```
 
-```{r}
-plot(model.knn, xvar="lambda")
-plot(model.lasso, xvar="lambda")
-plot(model.ridge)
-```
-
 ## Comparando os modelos gerados
+
+```{r}
+value <- c(min(model.lasso$results["RMSE"], na.rm = TRUE),
+           min(model.ridge$results["RMSE"], na.rm = TRUE),
+           min(model.knn$results["RMSE"], na.rm = TRUE))
+label <- c("Lasso", "Ridge", "KNN")
+
+data <- data.frame(label, value)
+
+plot(data)
+```
+Observa-se que a regressão Lasso apresentou o menor erro dentre as analisadas
 
 ## Quais as variáveis mais importantes?
 
+Os gráficos abaixo apresentam a importància de cada variável em seus respectivos modelos.
 ### Ridge
 ```{r}
 ggplot(varImp(model.ridge))
@@ -113,8 +112,18 @@ ggplot(varImp(model.ridge))
 ggplot(varImp(model.lasso))
 ```
 
+O gráfico mostra que a algumas variáveis apresentam pouca importância para o modelo, como por exemplo, UF (que foi a variável descartada pela regressão Lasso).
+
 ## Melhor modelo sem validação cruzada
 
+Observaremos agora o resultado do modelo de regressão Lasso sem o uso de validação cruzada, deste modo, usaremos o método de validação padrão da função train.
+```{r}
+model.lasso_2 <- train(votos~., 
+                     data = treino,
+                     method = "lasso",
+                     preProcess = c('scale', 'center', 'nzv'),
+                     metric = "RMSE",
+                     tuneLength = 100)
+model.lasso_2
+```
 
-# Testar outros modelos como SVR, Regression Trees, Florestas Aleatórias
-# Building Predictive Models in R Using the caret Package (PDF)
