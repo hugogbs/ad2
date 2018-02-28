@@ -1,0 +1,100 @@
+---
+title: "Predição de Deputados Eleitos 2014"
+author: "Hugo Gabriel"
+date: "28 de fevereiro de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE)
+
+library(caret)
+library(tidyverse)
+```
+
+
+```{r}
+dados <- read_csv("train.csv")
+
+dataPartition <- createDataPartition(dados$situacao_final, p = 0.75, list = FALSE)
+
+teste <- dados[dataPartition,]
+treino <- dados[-dataPartition,]
+```
+
+
+
+## Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador?
+
+```{r}
+ggplot(data=dados, aes(situacao_final)) + 
+  geom_histogram(stat = "count", fill = "#0080ff")
+
+n_eleitos <- dados %>%
+  filter(situacao_final == "eleito") %>%
+  nrow()
+n_Neleitos <- dados %>%
+  filter(situacao_final == "nao_eleito") %>%
+  nrow()
+```
+
+Podemos observar um grande desbalanceamento entre as classes, a classe *não eleito* é `r round(n_Neleitos/n_eleitos,2)` vezes maior que a classe *eleito*.
+
+Esse desbalanceamento pode prejudicar o classificador uma vez que tendo poucas observações de uma classe é mais difícil capturar e aprender como são seus elementos, deste modo o modelo fica prejudicado.
+
+Tendo em vista essse problema e com o propósito de melhorar o classificador será aplicada a técnica de **oversampling** que aumenta o número de observações da classe minoritária.
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 5,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE,
+                     sampling = "up")
+```
+
+
+## Treine: um modelo de regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo. 
+
+
+```{r}
+formula = as.formula(situacao_final ~ .)
+```
+
+
+```{r}
+modelo_regLog <- train(formula,
+                 data = teste,
+                 method="glm",
+                 family="binomial",
+                 na.action = na.omit,
+                 trControl = ctrl)
+
+summary(modelo_regLog)
+```
+
+```{r}
+modelo_decTree <- train(formula,
+                        data = teste,
+                        method = "rpart",
+                        cp=0.001,
+                        maxdepth=20,
+                        na.action = na.omit)
+summary(modelo_decTree)
+```
+
+```{r}
+modelo_adaboost <- train(formula,
+                         data=treino,
+                         method = "adaboost")
+
+modelo_adaboost
+```
+
+## Reporte acurácia, precision, recall e f-measure no treino e validação. Como você avalia os resultados? Justifique sua resposta.
+
+##Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo? ###Crie pelo menos um novo atributo que não está nos dados originais e estude o impacto desse atributo
+
+##Envie seus melhores modelos à competição do Kaggle. Sugestões abaixo:
+### Experimente outros modelos (e g. SVM, RandomForests e GradientBoosting)
+###Crie novos atributos.
