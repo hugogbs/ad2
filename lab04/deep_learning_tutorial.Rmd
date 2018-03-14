@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 library(DT)
 ```
 
@@ -28,7 +28,7 @@ Deep learning é um subcampo da aprendizagem de máquina (*machine learning*) qu
 
 Com o crescimento da populariade do *deep learning*, vários pacotes foram adicionados ao CRAN para este fim. A tabela abaixo mostra uma visão geral de alguns desses pacotes.
 
-```{r}
+```{r, echo=FALSE}
 Pacote = c("nnet", "neuralnet", "h2o", "RSNNS", "tensorflow", "deepnet", "darch","rnn", "FCNN4R",
            "rcppDL", "deepr", "MXNetR")
 Descrição = c("Software para redes neurais feed-forward com apenas uma camada oculta, e para modelos logaritmico-lineares multinomiais",
@@ -47,7 +47,21 @@ tabela <- data.frame(Pacote, Descrição)
 datatable(tabela, options = list(pageLength = 12, dom = 't'), rownames = FALSE)
 ```
 
+### Instalação do pacote keras
 
+O primeiro passo da instalação é:
+```{r eval=FALSE}
+devtools::install_github("rstudio/keras")
+```
+
+
+Em seguida é preciso carregar o pacote e instalar o TensorFlow:
+
+```{r eval=FALSE}
+library(keras)
+
+install_tensorflow()
+```
 
 
 
