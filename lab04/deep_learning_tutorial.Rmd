@@ -1,0 +1,55 @@
+---
+title: "Deep Learning em R com Keras"
+author: "Hugo Gabriel"
+date: "14 de março de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+library(DT)
+```
+
+### Introdução
+
+Este tutorial é baseado no tutorial *[keras: Deep Learning in R](https://www.datacamp.com/community/tutorials/keras-r-deep-learning)* (em inglês).
+
+O objetivo é aprender como implementar *deep learning* em R utilizando o pacote **keras**, para isso iremos construir uma rede neural Perceptron de multicamadas (MLP).
+
+
+Deep learning é um subcampo da aprendizagem de máquina (*machine learning*) que é o conjunto de algoritmos inspirados na estrutura e funcionamento do cérebro humano usualmente chamados de Redes Neurais Artificiais. *Deep learning* é um dos campos da aprendizagem de máquina em alta atualmente, sendo aplicada em vários problemas tais como reconhecimento de imagem, robótica e Inteligência Artificial.
+
+
+### Sumário
+
+# TODO
+
+### Visão geral dos pacotes R para Deep Learning
+
+Com o crescimento da populariade do *deep learning*, vários pacotes foram adicionados ao CRAN para este fim. A tabela abaixo mostra uma visão geral de alguns desses pacotes.
+
+```{r}
+Pacote = c("nnet", "neuralnet", "h2o", "RSNNS", "tensorflow", "deepnet", "darch","rnn", "FCNN4R",
+           "rcppDL", "deepr", "MXNetR")
+Descrição = c("Software para redes neurais feed-forward com apenas uma camada oculta, e para modelos logaritmico-lineares multinomiais",
+              "Treina redes neurais usando backpropagation",
+              "Funcionalidade de script R para H2O",
+              "Interface para o Simulador de Rede Neural Stuttgart (SNNS)",
+              "Interface para o TensorFlow",
+              "Conjunto de ferramentas de deep learning em R",
+              "Pacote para Arquiteturas profundas e para Máquinas Boltzmann Restritas (RBM)",
+              "Pacote para implementar redes neurais recorrentes (RNNs)",
+              "Interface para usar a biblioteca FCNN que permite redes neurais artificiais extensíveis",
+              "Implementação de métodos básicos de machine learning com várias camadas",
+              "Pacote para agilizar os processo de treino, tunning e predição para deep learning",
+              "Pacote que traz computação GPU flexível e eficiente  e o estado da arte de deep learning para o R")
+tabela <- data.frame(Pacote, Descrição)
+datatable(tabela, options = list(pageLength = 12, dom = 't'), rownames = FALSE)
+```
+
+
+
+
+
+
+
