@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 library(DT)
+library(tidyverse)
 ```
 
 ### Introdução
@@ -49,19 +50,50 @@ datatable(tabela, options = list(pageLength = 12, dom = 't'), rownames = FALSE)
 
 ### Instalação do pacote keras
 
-O primeiro passo da instalação é:
+Para realizar a instalação é preciso executar o seguinte comando:
+
 ```{r eval=FALSE}
 devtools::install_github("rstudio/keras")
 ```
 
-
-Em seguida é preciso carregar o pacote e instalar o TensorFlow:
+A interface Keras R usa o backend do Tensorflow como padrão. Então é preciso instalar os dois, para isso basta executar os comandos:
 
 ```{r eval=FALSE}
 library(keras)
-
-install_tensorflow()
+install_keras()
 ```
+
+#### Deu erro?
+
+Caso você receba um erro indicando que os pré-requisitos do Tensorflow não estão disponíveis basta executar no terminal:
+
+```{r eval = FALSE}
+$ sudo apt-get install python-pip python-virtualenv
+```
+
+E aí sim, você vai poder rodar:
+
+```{r eval = FALSE}
+install_keras()
+```
+
+**Isso é tudo que você precisa pra começar!**
+
+### Carregando os dados
+
+Com tudo pronto o próximo passo é carregar os dados que você vai usar. O próprio keras já possui alguns datasets, mas você pode carregar seus próprios dados ou ainda gerar seus próprios dados.
+
+Neste tutorial nós focaremos em carregar os dados de arquivos CSV. A função read_csv será usada para ler os dados do database **iris**.
+
+```{r eval = FALSE}
+iris <- read.csv(url("http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"), header = FALSE) 
+```
+
+### Exploração dos Dados
+
+O dataframe iris tem informações sobre 3 espécies de flores. Vale lembrar que como usamos *header = FALSE* na função read.csv as colunas não possuem nomes, mas são se preocupe, para esse tutorial o nome das colunas não será importante.
+
+Os dados são importados como *data.frame* mas os dados que você deve passar para a função **fit()** devem ser uma matriz ou um array.
 
 
 
